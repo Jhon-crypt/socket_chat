@@ -96,11 +96,13 @@ class ChatClient:
             try:
                 message_data = self.receive_message()
                 if not message_data:
+                    # Peer likely closed connection
                     break
                     
                 self.handle_server_message(message_data)
                 
             except socket.timeout:
+                # No message this tick; keep waiting
                 continue
             except Exception as e:
                 if self.running:
@@ -185,32 +187,19 @@ class ChatClient:
                         break
                         
                 except EOFError:
-                    # EOF reached (piped input ended or Ctrl+D)
-                    if not sys.stdin.isatty():
-                        # Input was piped and has ended - switch to interactive mode
-                        print("\n💡 Input pipe ended. Switching to interactive mode...")
-                        print("💡 Type your messages or /quit to exit")
-                        
-                        # Try to reconnect stdin to the terminal
-                        try:
-                            import os
-                            sys.stdin.close()
-                            sys.stdin = open('/dev/tty', 'r')
-                            continue  # Continue the loop with interactive input
-                        except (OSError, IOError):
-                            # If we can't open /dev/tty, just wait for messages
-                            print("💡 Cannot switch to interactive mode. You can still receive messages.")
-                            print("💡 Press Ctrl+C to exit.")
-                            # Keep the connection alive but don't try to get more input
-                            try:
-                                while self.running and self.connected:
-                                    time.sleep(1)
-                            except KeyboardInterrupt:
-                                break
-                            break
-                    else:
-                        # Interactive terminal - Ctrl+D means quit
-                        break
+                    # EOF reached - pipe ended, now wait for manual input
+                    print("\n💡 Connection established! You can now type messages.")
+                    print("💡 Type /quit when you want to disconnect.")
+                    
+                    # Keep connection alive and wait for Ctrl+C or manual termination
+                    try:
+                        print("💡 Chat is active. Press Ctrl+C to disconnect.")
+                        while self.running and self.connected:
+                            time.sleep(0.1)  # Just keep the connection alive
+                    except KeyboardInterrupt:
+                        print("\n💡 Disconnecting...")
+                        return
+                    return
                         
                 except KeyboardInterrupt:
                     # Ctrl+C pressed
@@ -219,7 +208,8 @@ class ChatClient:
         except Exception as e:
             logger.error(f"Error in send loop: {e}")
         
-        self.disconnect()
+        # Only disconnect if user explicitly quits or connection is closed elsewhere
+        # Do not force auto-disconnect here
     
     def send_message(self, data: dict) -> bool:
         """Send JSON message to server with proper framing"""
@@ -247,10 +237,12 @@ class ChatClient:
                 try:
                     chunk = self.socket.recv(1024).decode('utf-8')
                     if not chunk:
+                        # Remote closed connection
                         return None
                     buffer += chunk
                 except socket.timeout:
-                    return None
+                    # Propagate timeout so caller can decide to continue
+                    raise
             
             # Extract the first complete message
             message, remaining = buffer.split('\n', 1)
@@ -261,7 +253,8 @@ class ChatClient:
             return json.loads(message)
             
         except socket.timeout:
-            return None
+            # Let caller handle timeouts (do not treat as disconnect)
+            raise
         except json.JSONDecodeError:
             logger.error("Invalid JSON received from server")
             return None

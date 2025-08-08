@@ -96,12 +96,14 @@ class ChatServer:
                 try:
                     message_data = self.receive_message(client_socket)
                     if not message_data:
+                        # Client closed connection
                         break
                         
                     # Process the message
                     self.process_message(client_socket, username, message_data)
                     
                 except socket.timeout:
+                    # No complete message yet; keep waiting
                     continue
                 except (ConnectionResetError, ConnectionAbortedError):
                     break
@@ -179,10 +181,14 @@ class ChatServer:
         try:
             buffer = ""
             while '\n' not in buffer:
-                chunk = client_socket.recv(1024).decode('utf-8')
-                if not chunk:
-                    return None
-                buffer += chunk
+                try:
+                    chunk = client_socket.recv(1024).decode('utf-8')
+                    if not chunk:
+                        return None
+                    buffer += chunk
+                except socket.timeout:
+                    # Propagate timeout so caller loop can continue waiting
+                    raise
             
             # Extract the first complete message
             message, remaining = buffer.split('\n', 1)
@@ -192,6 +198,9 @@ class ChatServer:
                 
             return json.loads(message)
             
+        except socket.timeout:
+            # Let caller handle timeouts; do not treat as disconnect
+            raise
         except json.JSONDecodeError:
             logger.error("Invalid JSON received")
             return None
