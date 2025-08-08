@@ -1,6 +1,6 @@
 # TCP Socket Chat Application
 
-A professional client-server chat application built with Python using TCP sockets. This application demonstrates the fundamentals of socket programming, TCP/IP communication, and real-time message transmission over networks.
+A client-server chat application built with Python using TCP sockets. This application demonstrates the fundamentals of socket programming, TCP/IP communication, and real-time message transmission over networks.
 
 ## Features
 
