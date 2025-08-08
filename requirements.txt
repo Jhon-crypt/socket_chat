@@ -1,0 +1,18 @@
+# TCP Chat Application Dependencies
+# This application uses only Python standard library modules
+# No external dependencies required
+
+# Python 3.7+ is recommended for optimal performance
+# Standard library modules used:
+# - socket (TCP networking)
+# - threading (concurrent client handling)
+# - json (message serialization)
+# - time (timestamps)
+# - logging (application logging)
+# - sys (system operations)
+# - typing (type hints)
+
+# For development/testing (optional):
+# pytest>=6.0.0
+# black>=21.0.0
+# flake8>=3.8.0
