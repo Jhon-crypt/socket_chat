@@ -115,7 +115,7 @@ source socket_chat/bin/activate
 ```bash
 python client.py
 ```
-
+ 
 4. Follow the prompts:
 ```
 💬 TCP Chat Client
@@ -296,4 +296,4 @@ By building and running this chat application, you'll learn:
 
 ## License
 
-This project is provided for educational purposes. Feel free to modify and extend it for your learning needs.
+This project is licensed under the MIT License. See the `LICENSE` file for details.
