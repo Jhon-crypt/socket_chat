@@ -149,6 +149,9 @@ class ChatClient:
         print("💡 Commands: /quit to exit, /ping to test connection")
         print("="*50)
         
+        import sys
+        import time
+        
         try:
             while self.running and self.connected:
                 try:
@@ -182,8 +185,33 @@ class ChatClient:
                         break
                         
                 except EOFError:
-                    # Ctrl+D pressed
-                    break
+                    # EOF reached (piped input ended or Ctrl+D)
+                    if not sys.stdin.isatty():
+                        # Input was piped and has ended - switch to interactive mode
+                        print("\n💡 Input pipe ended. Switching to interactive mode...")
+                        print("💡 Type your messages or /quit to exit")
+                        
+                        # Try to reconnect stdin to the terminal
+                        try:
+                            import os
+                            sys.stdin.close()
+                            sys.stdin = open('/dev/tty', 'r')
+                            continue  # Continue the loop with interactive input
+                        except (OSError, IOError):
+                            # If we can't open /dev/tty, just wait for messages
+                            print("💡 Cannot switch to interactive mode. You can still receive messages.")
+                            print("💡 Press Ctrl+C to exit.")
+                            # Keep the connection alive but don't try to get more input
+                            try:
+                                while self.running and self.connected:
+                                    time.sleep(1)
+                            except KeyboardInterrupt:
+                                break
+                            break
+                    else:
+                        # Interactive terminal - Ctrl+D means quit
+                        break
+                        
                 except KeyboardInterrupt:
                     # Ctrl+C pressed
                     break
